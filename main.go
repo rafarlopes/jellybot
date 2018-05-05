@@ -44,7 +44,7 @@ func main() {
 		log.WithField("msg", msg).Info("message received from channel")
 
 		go func(msg chat.Message) {
-			out, err := docker.RunCommand(msg.Text)
+			out, err := cmd.RunCommand(docker, msg.Text)
 			if err != nil {
 				c.Send(fmt.Sprintf("Sorry, I couldn't run you command. Here's the details: %s", err.Error()), msg.Chat)
 				return

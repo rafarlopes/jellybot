@@ -14,36 +14,31 @@ import (
 )
 
 var (
-	commands = map[string]func(cli *DockerClient, params []string) (string, error){
+	//TODO maybe we can remove this kind of mapping and use a convention instead
+	commands = map[string]func(cli client.APIClient, params []string) (string, error){
 		"run": Run,
 	}
 )
-
-// DockerClient is used to wrap around official docker Client strunct
-type DockerClient struct {
-	*client.Client
-}
 
 // DockerCommandRunner interface to represent our docker cmd runnner
 type DockerCommandRunner interface {
 	RunCommand(cmd string) (string, error)
 }
 
-// NewDockerClient creates an instace of docker Client and returns our interface
-func NewDockerClient() (DockerCommandRunner, error) {
+// NewDockerClient creates an instace of docker Client and returns APIClient interface
+func NewDockerClient() (client.APIClient, error) {
 	cli, err := client.NewEnvClient()
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &DockerClient{
-		cli,
-	}, nil
+	return cli, nil
 }
 
 // RunCommand is responsable to find the proper command and run it
-func (cli *DockerClient) RunCommand(cmd string) (string, error) {
+func RunCommand(cli client.APIClient, cmd string) (string, error) {
+	//TODO can we use Cobra cmd here to make our life easier?
 	log.WithField("cmd", cmd).Info("command received")
 	args := strings.Split(cmd, " ")
 
@@ -60,7 +55,7 @@ func (cli *DockerClient) RunCommand(cmd string) (string, error) {
 }
 
 // Run starts an image in background and returns the containerID
-func Run(cli *DockerClient, params []string) (string, error) {
+func Run(cli client.APIClient, params []string) (string, error) {
 	log.WithField("params", params).Info("docker run")
 
 	if len(params) < 1 {
