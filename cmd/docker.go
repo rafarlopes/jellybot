@@ -42,16 +42,16 @@ func RunCommand(cli client.APIClient, cmd string) (string, error) {
 	log.WithField("cmd", cmd).Info("command received")
 	args := strings.Split(cmd, " ")
 
-	if len(args) < 4 {
+	if len(args) < 3 {
 		return "", fmt.Errorf("command should have a least 3 arguments, cmd: %s", cmd)
 	}
 
-	cmdFn, ok := commands[args[2]]
+	cmdFn, ok := commands[args[1]]
 	if !ok {
-		return "", fmt.Errorf("command [docker %s] is not implemented yet", args[2])
+		return "", fmt.Errorf("command [docker %s] is not implemented yet", args[1])
 	}
 
-	return cmdFn(cli, args[3:])
+	return cmdFn(cli, args[2:])
 }
 
 // Run starts an image in background and returns the containerID

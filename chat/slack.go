@@ -66,7 +66,7 @@ func (s *slackChat) StartReceiving() <-chan Message {
 				prefix := fmt.Sprintf("<@%s> ", info.User.ID)
 				if ev.User != info.User.ID && strings.HasPrefix(ev.Text, prefix) {
 					ch <- Message{
-						Text: ev.Text,
+						Text: strings.Replace(ev.Text, prefix, "", 1),
 						From: ev.User,
 						To:   info.User.ID,
 						Chat: ev.Channel,
