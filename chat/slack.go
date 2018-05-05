@@ -9,45 +9,50 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type slackChat struct {
+	cli       *slack.Client
+	rtm       *slack.RTM
+	channelID string
+}
+
 // New creates an instance of SlackChat using a token
-func New(token, userID, channelID string) *Chat {
+func New(token, channelID string) MessageSenderReceiver {
 	log.WithFields(log.Fields{
 		"token":     token,
-		"userID":    userID,
 		"channelID": channelID,
 	}).Info("creating new slack chat")
 
 	client := slack.New(token)
 	rtm := client.NewRTM()
 
+	//TODO should we move it to its own method?
 	go rtm.ManageConnection()
-	return &Chat{
-		client: rtm,
-		userID: userID,
-		chatID: channelID,
+
+	return &slackChat{
+		cli:       client,
+		rtm:       rtm,
+		channelID: channelID,
 	}
 }
 
 // Send a message to user or channel in slack
-func (c *Chat) Send(message, to string) {
-	rtm := c.client.(*slack.RTM)
-	rtm.SendMessage(rtm.NewOutgoingMessage(message, to))
+func (s *slackChat) Send(message, to string) {
+	s.rtm.SendMessage(s.rtm.NewOutgoingMessage(message, to))
 }
 
 // Receive opens a channel to handler messages from slack to the specific bot user
-func (c *Chat) StartReceiving() <-chan Message {
-	rtm := c.client.(*slack.RTM)
+func (s *slackChat) StartReceiving() <-chan Message {
 	ch := make(chan Message)
 
 	go func() {
 		defer close(ch)
 	Loop:
-		for msg := range rtm.IncomingEvents {
+		for msg := range s.rtm.IncomingEvents {
 			switch ev := msg.Data.(type) {
 			case *slack.ConnectedEvent:
 				time.AfterFunc(1*time.Second, func() {
 					log.Info("bot connected, sending hello world")
-					c.Send("Hi there, I'm here!", c.chatID)
+					s.Send("Hi there, I'm here!", s.channelID)
 				})
 
 			case *slack.MessageEvent:
@@ -57,7 +62,7 @@ func (c *Chat) StartReceiving() <-chan Message {
 					"from":    ev.User,
 				}).Info("message received")
 
-				info := rtm.GetInfo()
+				info := s.rtm.GetInfo()
 				prefix := fmt.Sprintf("<@%s> ", info.User.ID)
 				if ev.User != info.User.ID && strings.HasPrefix(ev.Text, prefix) {
 					ch <- Message{

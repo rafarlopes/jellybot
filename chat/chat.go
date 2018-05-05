@@ -15,11 +15,8 @@ type MessageSender interface {
 	Send(message, to string)
 }
 
-// Chat combination of both interfaces to Send and Receive messages
-type Chat struct {
-	client interface{}
-	userID string
-	chatID string
+// MessageSenderReceiver is a combination of both interfaces MessageReceiver and MessageSender
+type MessageSenderReceiver interface {
 	MessageSender
 	MessageReceiver
 }

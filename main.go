@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	token, userID, chatID string
+	token, chatID string
 )
 
 func init() {
@@ -19,17 +19,11 @@ func init() {
 	log.SetLevel(log.InfoLevel)
 
 	token = os.Getenv("CHAT_API_TOKEN")
-	userID = os.Getenv("BOT_USER_ID")
-	chatID = os.Getenv("DEFAULT_CHAT_ID")
-
 	if token == "" {
 		panic("set env variable CHAT_API_TOKEN")
 	}
 
-	if userID == "" {
-		panic("set env variable BOT_USER_ID")
-	}
-
+	chatID = os.Getenv("DEFAULT_CHAT_ID")
 	if chatID == "" {
 		panic("set env variable DEFAULT_CHAT_ID")
 	}
@@ -38,21 +32,26 @@ func init() {
 
 func main() {
 	log.Infoln("starting jellybot...")
+	c := chat.New(token, chatID)
+	msgCh := c.StartReceiving()
+	docker, err := cmd.NewDockerClient()
 
-	chat := chat.New(token, userID, chatID)
-	msgCh := chat.StartReceiving()
+	if err != nil {
+		panic(err)
+	}
 
 	for msg := range msgCh {
 		log.WithField("msg", msg).Info("message received from channel")
-		go func() {
-			out, err := cmd.Parse(msg.Text)
+
+		go func(msg chat.Message) {
+			out, err := docker.RunCommand(msg.Text)
 			if err != nil {
-				chat.Send(fmt.Sprintf("Sorry, I couldn't run you command. Here's the details: %s", err.Error()), msg.Chat)
+				c.Send(fmt.Sprintf("Sorry, I couldn't run you command. Here's the details: %s", err.Error()), msg.Chat)
 				return
 			}
 
-			chat.Send(out, msg.Chat)
-		}()
+			c.Send(out, msg.Chat)
+		}(msg)
 
 	}
 
